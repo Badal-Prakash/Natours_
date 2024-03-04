@@ -2,8 +2,24 @@ const Tour = require('./../models/tourModels');
 
 exports.getAllTours = async (req, res) => {
   try {
-    const tours = await Tour.find();
+    const queryObj = { ...req.query };
+    const excludeFields = ['sort', 'page', 'limit', 'fields'];
 
+    excludeFields.forEach(el => delete queryObj[el]);
+
+    // console.log(req.query, queryObj);
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|lte|lt|gt)\b/g, match => `$${match}`);
+
+    let query = Tour.find(JSON.parse(queryStr));
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
+    const tours = await query;
     res.status(200).json({
       status: 'success',
       results: tours.length,
